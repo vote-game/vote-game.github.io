@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vote Game</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #111935;
+      --muted: #9fb0d0;
+      --text: #e8efff;
+      --accent: #6ea8ff;
+      --accent-2: #9bdb6b;
+      --danger: #ff6e6e;
+      --warning: #ffd56e;
+    }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 22px; margin: 4px 0 16px; }
+    h2 { font-size: 18px; margin: 24px 0 12px; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { background: var(--panel); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row > * { flex: 0 0 auto; }
+    input, button { height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: #0e1733; color: var(--text); padding: 0 10px; }
+    input { min-width: 180px; }
+    input:disabled { opacity: 0.6; }
+    button { cursor: pointer; background: #16224a; }
+    button:hover { background: #1b2a5d; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-accent { background: #1d3a7a; border-color: #2b5bd7; }
+    .btn-danger { background: #5a1f1f; border-color: #a33232; }
+    .list { display: grid; gap: 8px; }
+    .chip { display: inline-flex; gap: 8px; align-items: center; background: #0f1a3a; border: 1px solid rgba(255,255,255,0.06); padding: 6px 10px; border-radius: 999px; font-size: 13px; color: var(--muted); }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; color: var(--muted); }
+    .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+    .votes-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .card { background: #0f1a3a; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .card h3 { margin: 0; font-size: 16px; }
+    .count { font-weight: 600; color: var(--accent-2); }
+    .warning { color: var(--warning); font-size: 12px; }
+    .center { text-align: center; }
+    .kbd { background: #0b132b; border: 1px solid rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; font-size: 13px; }
+    .row-gap { display: grid; gap: 10px; }
+    .hidden { display: none !important; }
+    a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Vote Game</h1>
+    <div class="panel">
+      <div class="row-gap">
+        <div class="row">
+          <label>이름</label>
+          <input id="nameInput" placeholder="닉네임" />
+          <button id="saveNameBtn">이름 저장</button>
+          <span class="small">저장된 이름: <span id="savedName" class="kbd muted">-</span></span>
+        </div>
+        <div class="row">
+          <label>방 키</label>
+          <input id="roomKeyInput" placeholder="예: ABC123" />
+          <button id="createRoomBtn" class="btn-accent">방 만들기</button>
+          <button id="joinRoomBtn">입장하기</button>
+          <span class="small">현재 방: <span id="currentRoom" class="kbd muted">-</span></span>
+        </div>
+        <div class="small muted">주의: 이 파일은 브라우저 보안 정책상 <span class="kbd">file://</span>로 여는 대신 간단한 웹서버(예: <span class="kbd">npx http-server -p 3001</span>)로 띄우는 걸 권장합니다. 서버 CORS 허용 도메인: http://localhost:3001</div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top: 16px;">
+      <div class="panel">
+        <h2>참여자</h2>
+        <div id="peaplesList" class="list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>방 정보</h2>
+        <div class="list">
+          <div>Room ID: <span id="roomIdLabel" class="kbd">-</span></div>
+          <div>Room Key: <span id="roomKeyLabel" class="kbd">-</span></div>
+          <div>내 Peaple ID: <span id="myPeapleIdLabel" class="kbd">-</span></div>
+          <div>내 역할: <span id="myRoleLabel" class="kbd">-</span></div>
+          <div>방장 시작 상태: <span id="ownerReadyLabel" class="kbd">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ownerControls" class="panel hidden" style="margin-top:16px;">
+      <h2>방장 전용: 아이템 관리</h2>
+      <div class="row">
+        <input id="voteItemNameInput" placeholder="아이템 이름" />
+        <button id="addVoteItemBtn">추가</button>
+        <button id="startBtn" class="btn-accent">시작하기</button>
+      </div>
+      <div class="divider"></div>
+      <div id="ownerItems" class="list"></div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h2>투표</h2>
+      <div class="small muted">방장의 <span class="kbd">isReady</span>가 <span class="kbd">true</span>가 된 이후부터 투표할 수 있습니다. 각 아이템은 최대 <span class="kbd">6표</span>까지 허용됩니다.</div>
+      <div class="divider"></div>
+      <div id="votesGrid" class="votes-grid"></div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h2>실시간 투표 현황</h2>
+      <table class="table">
+        <thead>
+          <tr><th>Peaple</th><th>isOwner</th><th>isReady</th><th>voteId</th></tr>
+        </thead>
+        <tbody id="statusTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ===== Config =====
+    const GRAPHQL_HTTP_URL = (localStorage.getItem('vg_http_url')) || 'http://localhost:3000/graphql';
+    const GRAPHQL_WS_URL = (localStorage.getItem('vg_ws_url')) || 'ws://localhost:3000/graphql';
+    const MAX_VOTES_PER_ITEM = 6;
+
+    // ===== State =====
+    const state = {
+      name: localStorage.getItem('vg_name') || '',
+      roomKey: localStorage.getItem('vg_roomKey') || '',
+      roomId: null,
+      myPeapleId: null,
+      isOwner: false,
+      ownerReady: false,
+      peaples: new Map(), // id -> peaple
+      voteItems: new Map(), // id -> voteItem
+      ws: null,
+      wsConnected: false,
+      subIds: [],
+    };
+
+    // ===== Helpers: DOM =====
+    const $ = (id) => document.getElementById(id);
+
+    function setSavedLabels() {
+      $('savedName').textContent = state.name || '-';
+      $('currentRoom').textContent = state.roomKey || '-';
+      $('roomIdLabel').textContent = state.roomId || '-';
+      $('roomKeyLabel').textContent = state.roomKey || '-';
+      $('myPeapleIdLabel').textContent = state.myPeapleId || '-';
+      $('myRoleLabel').textContent = state.isOwner ? '방장' : (state.myPeapleId ? '참가자' : '-');
+      $('ownerReadyLabel').textContent = String(state.ownerReady);
+    }
+
+    // ===== Helpers: GraphQL HTTP =====
+    async function gqlRequest(query, variables) {
+      const res = await fetch(GRAPHQL_HTTP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables })
+      });
+      const json = await res.json();
+      if (json.errors) {
+        throw new Error(JSON.stringify(json.errors));
+      }
+      return json.data;
+    }
+
+    // ===== Helpers: GraphQL Subscriptions (subscriptions-transport-ws protocol) =====
+    function connectWs() {
+      if (state.ws) { try { state.ws.close(); } catch (e) {} }
+      const ws = new WebSocket(GRAPHQL_WS_URL, 'graphql-ws');
+      state.ws = ws;
+      state.wsConnected = false;
+      state.subIds = [];
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'connection_init', payload: {} }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'connection_ack') {
+            state.wsConnected = true;
+            // Start subscriptions
+            startPeapleSubscriptions();
+          } else if (msg.type === 'ka') {
+            // keep-alive
+          } else if (msg.type === 'data') {
+            const payload = msg.payload && msg.payload.data;
+            if (!payload) return;
+            if (payload.createdPeaple || payload.updatedOnePeaple || payload.deletedOnePeaple) {
+              // Refresh peaples and vote items upon any peaple change
+              refreshAll();
+            }
+          } else if (msg.type === 'error') {
+            console.warn('WS error', msg);
+          } else if (msg.type === 'complete') {
+            // subscription complete
+          }
+        } catch (e) {
+          console.warn('WS parse error', e);
+        }
+      };
+
+      ws.onclose = () => {
+        state.wsConnected = false;
+        // Simple reconnect
+        setTimeout(() => {
+          if (state.roomId) connectWs();
+        }, 1500);
+      };
+    }
+
+    function wsStart(query, variables) {
+      if (!state.wsConnected) return;
+      const id = String(Math.random()).slice(2);
+      state.subIds.push(id);
+      state.ws.send(JSON.stringify({ id, type: 'start', payload: { query, variables } }));
+    }
+
+    function startPeapleSubscriptions() {
+      if (!state.roomId) return;
+      const filter = { filter: { roomId: { eq: String(state.roomId) } } };
+      const subCreated = `subscription($input: CreatePeapleSubscriptionFilterInput!) { createdPeaple(input: $input) { _id name isOwner isReady voteId roomId } }`;
+      const subUpdated = `subscription($input: UpdateOnePeapleSubscriptionFilterInput!) { updatedOnePeaple(input: $input) { _id name isOwner isReady voteId roomId } }`;
+      const subDeleted = `subscription($input: DeleteOnePeapleSubscriptionFilterInput!) { deletedOnePeaple(input: $input) { _id name roomId } }`;
+      wsStart(subCreated, { input: filter });
+      wsStart(subUpdated, { input: filter });
+      wsStart(subDeleted, { input: filter });
+    }
+
+    // ===== Queries/Mutations =====
+    async function queryRoomByKey(roomKey) {
+      const query = `
+        query($roomKey: String!) {
+          rooms(paging: {first: 1}, filter: { roomKey: { eq: $roomKey } }) {
+            edges { node { _id roomKey } }
+          }
+        }
+      `;
+      const data = await gqlRequest(query, { roomKey });
+      const edges = data.rooms.edges || [];
+      return edges.length ? edges[0].node : null;
+    }
+
+    async function createRoom(roomKey) {
+      const mutation = `
+        mutation($room: CreateRoom!) {
+          createOneRoom(input: { room: $room }) { _id roomKey }
+        }
+      `;
+      // Note: _id is required by schema; we pass a timestamp string to satisfy GraphQL non-null.
+      const room = { _id: String(Date.now()), roomKey };
+      const data = await gqlRequest(mutation, { room });
+      return data.createOneRoom;
+    }
+
+    async function createPeaple({ name, roomId, isOwner }) {
+      const mutation = `
+        mutation($peaple: CreatePeaple!) {
+          createOnePeaple(input: { peaple: $peaple }) { _id name isOwner isReady roomId voteId }
+        }
+      `;
+      const peaple = { _id: String(Date.now()), name, isOwner: !!isOwner, isReady: false, roomId: String(roomId) };
+      const data = await gqlRequest(mutation, { peaple });
+      return data.createOnePeaple;
+    }
+
+    async function ensurePeaple({ name, roomId, isOwner }) {
+      try {
+        return await createPeaple({ name, roomId, isOwner });
+      } catch (e) {
+        // likely Unique(name, roomId) violation -> fetch existing
+        const query = `
+          query($name: String!, $roomId: String!) {
+            peaples(paging: {first: 1}, filter: { and: [ { name: { eq: $name } }, { roomId: { eq: $roomId } } ] }) {
+              edges { node { _id name isOwner isReady roomId voteId } }
+            }
+          }
+        `;
+        const data = await gqlRequest(query, { name, roomId: String(roomId) });
+        const edges = data.peaples.edges || [];
+        if (edges.length) return edges[0].node;
+        throw e;
+      }
+    }
+
+    async function updatePeaple(id, update) {
+      const mutation = `
+        mutation($id: ID!, $update: UpdatePeaple!) {
+          updateOnePeaple(input: { id: $id, update: $update }) { _id isReady voteId }
+        }
+      `;
+      const data = await gqlRequest(mutation, { id: String(id), update });
+      return data.updateOnePeaple;
+    }
+
+    async function createVoteItem({ name, roomId }) {
+      const mutation = `
+        mutation($voteItem: CreateVoteItem!) {
+          createOneVoteItem(input: { voteItem: $voteItem }) { _id name roomId }
+        }
+      `;
+      const voteItem = { _id: String(Date.now()), name, roomId: String(roomId) };
+      const data = await gqlRequest(mutation, { voteItem });
+      return data.createOneVoteItem;
+    }
+
+    async function queryVoteItems(roomId) {
+      const query = `
+        query($roomId: String!) {
+          voteItems(paging: { first: 100 }, filter: { roomId: { eq: $roomId } }) {
+            edges { node { _id name roomId } }
+          }
+        }
+      `;
+      const data = await gqlRequest(query, { roomId: String(roomId) });
+      return (data.voteItems.edges || []).map(e => e.node);
+    }
+
+    async function queryPeaples(roomId) {
+      const query = `
+        query($roomId: String!) {
+          peaples(paging: { first: 200 }, filter: { roomId: { eq: $roomId } }) {
+            edges { node { _id name isOwner isReady voteId roomId } }
+          }
+        }
+      `;
+      const data = await gqlRequest(query, { roomId: String(roomId) });
+      return (data.peaples.edges || []).map(e => e.node);
+    }
+
+    // ===== UI Render =====
+    function renderPeaples() {
+      const list = $('peaplesList');
+      list.innerHTML = '';
+      const arr = Array.from(state.peaples.values()).sort((a,b) => a.name.localeCompare(b.name));
+      for (const p of arr) {
+        const wrap = document.createElement('div');
+        wrap.className = 'row';
+        wrap.innerHTML = `
+          <span class="chip">${p.name}</span>
+          <span class="small">id=<span class="kbd">${p._id}</span></span>
+          <span class="small">isOwner=<span class="kbd">${p.isOwner}</span></span>
+          <span class="small">isReady=<span class="kbd">${p.isReady}</span></span>
+          <span class="small">voteId=<span class="kbd">${p.voteId || '-'}</span></span>
+        `;
+        list.appendChild(wrap);
+      }
+    }
+
+    function computeVoteCounts() {
+      const counts = {};
+      for (const [id] of state.voteItems) counts[id] = 0;
+      for (const p of state.peaples.values()) {
+        if (p.voteId && counts.hasOwnProperty(p.voteId)) counts[p.voteId] += 1;
+      }
+      return counts;
+    }
+
+    function renderOwnerControls() {
+      const ownerPanel = $('ownerControls');
+      ownerPanel.classList.toggle('hidden', !state.isOwner);
+      const list = $('ownerItems');
+      list.innerHTML = '';
+      const items = Array.from(state.voteItems.values());
+      for (const it of items) {
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="chip">${it.name}</span> <span class="small">id=<span class="kbd">${it._id}</span></span>`;
+        list.appendChild(div);
+      }
+    }
+
+    function renderVotes() {
+      const canVote = !!state.ownerReady;
+      const counts = computeVoteCounts();
+      const grid = $('votesGrid');
+      grid.innerHTML = '';
+      const items = Array.from(state.voteItems.values());
+      for (const it of items) {
+        const cnt = counts[it._id] || 0;
+        const atLimit = cnt >= MAX_VOTES_PER_ITEM;
+        const card = document.createElement('div');
+        card.className = 'card';
+        const votedThis = (state.peaples.get(state.myPeapleId || '') || {}).voteId === it._id;
+        card.innerHTML = `
+          <h3>${it.name}</h3>
+          <div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
+          ${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
+          <div class="row">
+            <button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '변경' : '투표'}</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+      // bind buttons
+      grid.querySelectorAll('button[data-vote]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const voteId = e.currentTarget.getAttribute('data-vote');
+          if (!state.myPeapleId) return alert('먼저 방에 입장하세요.');
+          try {
+            await updatePeaple(state.myPeapleId, { voteId });
+            await refreshAll();
+          } catch (err) {
+            console.error(err);
+            alert('투표 실패');
+          }
+        });
+      });
+    }
+
+    function renderStatus() {
+      const tbody = $('statusTable');
+      tbody.innerHTML = '';
+      const arr = Array.from(state.peaples.values()).sort((a,b) => a.name.localeCompare(b.name));
+      for (const p of arr) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${p.name}</td><td>${p.isOwner}</td><td>${p.isReady}</td><td>${p.voteId || '-'}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function fullRender() {
+      setSavedLabels();
+      renderPeaples();
+      renderOwnerControls();
+      renderVotes();
+      renderStatus();
+    }
+
+    // ===== Actions =====
+    async function refreshAll() {
+      if (!state.roomId) return;
+      const [peaples, voteItems] = await Promise.all([
+        queryPeaples(state.roomId),
+        queryVoteItems(state.roomId),
+      ]);
+      state.peaples.clear();
+      peaples.forEach(p => state.peaples.set(p._id, p));
+      state.voteItems.clear();
+      voteItems.forEach(v => state.voteItems.set(v._id, v));
+
+      // derive my info
+      if (state.myPeapleId && state.peaples.has(state.myPeapleId)) {
+        state.isOwner = !!state.peaples.get(state.myPeapleId).isOwner;
+      } else if (state.name) {
+        // try to resolve my peaple id by name
+        const me = peaples.find(p => p.name === state.name);
+        if (me) {
+          state.myPeapleId = me._id;
+          localStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
+          state.isOwner = !!me.isOwner;
+        }
+      }
+      // owner ready
+      const owner = peaples.find(p => p.isOwner);
+      state.ownerReady = owner ? !!owner.isReady : false;
+
+      fullRender();
+    }
+
+    async function enterRoomFlow({ create }) {
+      const name = $('nameInput').value.trim() || state.name;
+      const roomKey = $('roomKeyInput').value.trim() || state.roomKey;
+      if (!name) return alert('이름을 입력하세요.');
+      if (!roomKey) return alert('방 키를 입력하세요.');
+
+      try {
+        // resolve room
+        let room = await queryRoomByKey(roomKey);
+        if (!room) {
+          if (!create) return alert('존재하지 않는 방입니다. 방 만들기를 사용하세요.');
+          room = await createRoom(roomKey);
+        }
+
+        state.name = name;
+        state.roomKey = room.roomKey;
+        state.roomId = room._id;
+        localStorage.setItem('vg_name', state.name);
+        localStorage.setItem('vg_roomKey', state.roomKey);
+        localStorage.setItem(`vg_roomId_for_${state.roomKey}`, state.roomId);
+
+        // ensure peaple
+        const peaple = await ensurePeaple({ name, roomId: room._id, isOwner: !!create });
+        state.myPeapleId = peaple._id;
+        localStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
+        state.isOwner = !!peaple.isOwner;
+
+        setSavedLabels();
+        await refreshAll();
+        connectWs();
+      } catch (err) {
+        console.error(err);
+        alert('입장/생성 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+      }
+    }
+
+    async function onAddVoteItem() {
+      const name = $('voteItemNameInput').value.trim();
+      if (!name) return;
+      if (!state.roomId) return alert('먼저 방에 입장하세요.');
+      try {
+        await createVoteItem({ name, roomId: state.roomId });
+        $('voteItemNameInput').value = '';
+        await refreshAll();
+      } catch (err) {
+        console.error(err);
+        alert('아이템 추가 실패');
+      }
+    }
+
+    async function onStart() {
+      if (!state.isOwner) return alert('방장만 시작할 수 있습니다.');
+      if (!state.myPeapleId) return alert('내 Peaple ID를 확인할 수 없습니다.');
+      try {
+        await updatePeaple(state.myPeapleId, { isReady: true });
+        await refreshAll();
+      } catch (err) {
+        console.error(err);
+        alert('시작 처리 실패');
+      }
+    }
+
+    // ===== Events =====
+    $('saveNameBtn').addEventListener('click', () => {
+      const val = $('nameInput').value.trim();
+      if (!val) return alert('이름을 입력하세요.');
+      state.name = val;
+      localStorage.setItem('vg_name', state.name);
+      setSavedLabels();
+    });
+    $('createRoomBtn').addEventListener('click', () => enterRoomFlow({ create: true }));
+    $('joinRoomBtn').addEventListener('click', () => enterRoomFlow({ create: false }));
+    $('addVoteItemBtn').addEventListener('click', onAddVoteItem);
+    $('startBtn').addEventListener('click', onStart);
+
+    // ===== Init =====
+    function initInputsFromStorage() {
+      $('nameInput').value = state.name || '';
+      $('roomKeyInput').value = state.roomKey || '';
+      setSavedLabels();
+    }
+
+    async function tryResumeSession() {
+      if (!state.name || !state.roomKey) return;
+      const savedRoomId = localStorage.getItem(`vg_roomId_for_${state.roomKey}`);
+      if (!savedRoomId) return;
+      state.roomId = savedRoomId;
+      const savedPeapleId = localStorage.getItem(`vg_peapleId_${state.roomId}`);
+      if (savedPeapleId) state.myPeapleId = savedPeapleId;
+      await refreshAll();
+      connectWs();
+    }
+
+    initInputsFromStorage();
+    tryResumeSession();
+  </script>
+</body>
+</html>
+
+
