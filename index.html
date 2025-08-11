@@ -278,12 +278,13 @@
       // ===== Config =====
       const GRAPHQL_HTTP_URL =
         localStorage.getItem('vg_http_url') ||
-        'https://api.schedule.co.kr/graphql';
+        'https://api.scheduling.co.kr/graphql';
       const GRAPHQL_WS_URL =
-        localStorage.getItem('vg_ws_url') || 'wss://api.schedule.co.kr/graphql';
+        localStorage.getItem('vg_ws_url') ||
+        'wss://api.scheduling.co.kr/graphql';
       const VOTE_WS_URL =
         localStorage.getItem('vg_vote_ws_url') ||
-        'wss://api.schedule.co.kr/vote-game';
+        'wss://api.scheduling.co.kr/vote-game';
       const MAX_VOTES_PER_ITEM = 6;
 
       // ===== State =====
