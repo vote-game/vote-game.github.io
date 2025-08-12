@@ -384,6 +384,9 @@
         roomsPollHandle: null,
         voteWs: null,
         voteWsConnected: false,
+        voteWsToken: null,
+        voteWsReconnectTimer: null,
+        voteWsPingTimer: null,
       };
 
       // ===== Helpers: DOM =====
@@ -407,6 +410,16 @@
         $('ownerReadyLabel').textContent = String(state.ownerReady);
       }
 
+      // ===== Debounced refresh =====
+      let refreshTimeoutId = null;
+      function requestRefresh() {
+        if (refreshTimeoutId) return;
+        refreshTimeoutId = setTimeout(async () => {
+          refreshTimeoutId = null;
+          await refreshAll();
+        }, 150);
+      }
+
       // ===== GraphQL HTTP =====
       async function gqlRequest(query, variables) {
         const res = await fetch(GRAPHQL_HTTP_URL, {
@@ -424,7 +437,13 @@
       // ===== Queries/Mutations =====
       async function queryRooms() {
         const query = `
-          query { rooms(paging: { first: 50 }) { edges { node { _id roomKey } } } }
+          query {
+            rooms(paging: { first: 50 }) {
+              edges {
+                node { _id roomKey peaples { _id } }
+              }
+            }
+          }
         `;
         const data = await gqlRequest(query, {});
         return (data.rooms.edges || []).map((e) => e.node);
@@ -562,8 +581,40 @@
       }
 
       // ===== Native WS for realtime (room scoped) =====
+      function clearWsTimers() {
+        if (state.voteWsReconnectTimer) {
+          try {
+            clearTimeout(state.voteWsReconnectTimer);
+          } catch (_) {}
+          state.voteWsReconnectTimer = null;
+        }
+        if (state.voteWsPingTimer) {
+          try {
+            clearInterval(state.voteWsPingTimer);
+          } catch (_) {}
+          state.voteWsPingTimer = null;
+        }
+      }
+
+      function disconnectRoomWs() {
+        clearWsTimers();
+        state.voteWsToken = null;
+        if (state.voteWs) {
+          try {
+            state.voteWs.close();
+          } catch (_) {}
+          state.voteWs = null;
+        }
+        state.voteWsConnected = false;
+      }
+
       function connectRoomWs() {
         if (!state.roomId) return;
+        // invalidate older timers
+        clearWsTimers();
+        // create new token for this connection attempt
+        const token = Symbol('voteWs');
+        state.voteWsToken = token;
         if (state.voteWs) {
           try {
             state.voteWs.close();
@@ -581,21 +632,38 @@
               name: state.name || undefined,
             }),
           );
+          // start heartbeat for current token only
+          state.voteWsPingTimer = setInterval(() => {
+            if (state.voteWsToken !== token) return;
+            try {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            } catch (_) {}
+          }, 25000);
         };
         ws.onmessage = (ev) => {
           try {
             const msg = JSON.parse(ev.data);
             if (msg.type === 'event' && msg.roomId === String(state.roomId)) {
               if (msg.event === 'refresh' || msg.event === 'presence')
-                refreshAll();
+                requestRefresh();
             }
           } catch (e) {
             console.warn('vote-ws parse error', e);
           }
         };
         ws.onclose = () => {
+          // schedule reconnect only for the latest connection token
+          if (state.voteWsToken !== token) return;
           state.voteWsConnected = false;
-          setTimeout(() => {
+          if (state.voteWsReconnectTimer) return; // already scheduled
+          if (state.voteWsPingTimer) {
+            try {
+              clearInterval(state.voteWsPingTimer);
+            } catch (_) {}
+            state.voteWsPingTimer = null;
+          }
+          state.voteWsReconnectTimer = setTimeout(() => {
+            state.voteWsReconnectTimer = null;
             if (state.roomId) connectRoomWs();
           }, 1500);
         };
@@ -665,7 +733,7 @@
                 const ok = await deleteOnePeaple(p._id);
                 if (!ok) return alert('강퇴 실패');
                 wsBroadcast('refresh', { reason: 'kick', targetId: p._id });
-                await refreshAll();
+                if (!state.voteWsConnected) await refreshAll();
               } catch (err) {
                 console.error(err);
                 alert('강퇴 실패');
@@ -754,7 +822,7 @@
             try {
               await updatePeaple(state.myPeapleId, { voteId });
               wsBroadcast('refresh', { reason: 'vote_changed' });
-              await refreshAll();
+              if (!state.voteWsConnected) await refreshAll();
             } catch (err) {
               console.error(err);
               alert('투표 실패');
@@ -804,13 +872,10 @@
 
       async function loadRoomsList() {
         const rooms = await queryRooms();
-        // attach participant counts (parallel)
-        const enriched = await Promise.all(
-          rooms.map(async (r) => {
-            const peaples = await queryPeaples(r._id);
-            return { ...r, count: peaples.length };
-          }),
-        );
+        const enriched = rooms.map((r) => ({
+          ...r,
+          count: Array.isArray(r.peaples) ? r.peaples.length : 0,
+        }));
         renderRooms(enriched);
       }
 
@@ -846,7 +911,7 @@
           await refreshAll();
           connectRoomWs();
           showView('view-room');
-          wsBroadcast('refresh', { reason: 'join_or_create' });
+          // Presence 이벤트가 WS로 전파되므로 별도 refresh 브로드캐스트는 생략
         } catch (err) {
           console.error(err);
           alert('입장/생성 중 오류가 발생했습니다.');
@@ -861,7 +926,7 @@
           await createVoteItem({ name, roomId: state.roomId });
           wsBroadcast('refresh', { reason: 'vote_item_created' });
           $('voteItemNameInput').value = '';
-          await refreshAll();
+          if (!state.voteWsConnected) await refreshAll();
         } catch (err) {
           console.error(err);
           alert('아이템 추가 실패');
@@ -875,7 +940,7 @@
         try {
           await updatePeaple(state.myPeapleId, { isReady: true });
           wsBroadcast('refresh', { reason: 'owner_ready' });
-          await refreshAll();
+          if (!state.voteWsConnected) await refreshAll();
         } catch (err) {
           console.error(err);
           alert('시작 처리 실패');
@@ -888,7 +953,7 @@
         try {
           await updatePeaple(state.myPeapleId, { isReady: false });
           wsBroadcast('refresh', { reason: 'owner_stop' });
-          await refreshAll();
+          if (!state.voteWsConnected) await refreshAll();
         } catch (err) {
           console.error(err);
           alert('멈춤 처리 실패');
@@ -904,8 +969,6 @@
         $('savedName').textContent = state.name;
         showView('view-rooms');
         await loadRoomsList();
-        if (state.roomsPollHandle) clearInterval(state.roomsPollHandle);
-        state.roomsPollHandle = setInterval(loadRoomsList, 5000);
       });
 
       $('editNameBtn').addEventListener('click', () => {
@@ -961,6 +1024,7 @@
         await loadRoomsList();
       });
       $('leaveRoomBtn').addEventListener('click', () => {
+        disconnectRoomWs();
         showView('view-rooms');
       });
 
@@ -971,8 +1035,6 @@
         if (state.name) {
           showView('view-rooms');
           loadRoomsList();
-          if (state.roomsPollHandle) clearInterval(state.roomsPollHandle);
-          state.roomsPollHandle = setInterval(loadRoomsList, 5000);
         } else {
           showView('view-welcome');
         }
