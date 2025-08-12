@@ -78,6 +78,8 @@
       .subtle {
         color: var(--muted);
         font-size: 12px;
+        margin-bottom: 4px;
+        margin-top: 4px;
       }
 
       .content {
@@ -551,7 +553,7 @@
         const query = `
           query($roomId: String!) {
             peaples(paging: { first: 50 }, filter: { roomId: { eq: $roomId } }) {
-              edges { node { _id name isOwner isReady voteId roomId } }
+              edges { node { _id name isOwner isReady voteId roomId updatedAt } }
             }
           }
         `;
@@ -684,6 +686,26 @@
         return counts;
       }
 
+      function computeLastVotesByItem() {
+        const result = {};
+        for (const p of state.peaples.values()) {
+          if (!p.voteId || !p.updatedAt) continue;
+          const timeMs = new Date(p.updatedAt).getTime();
+          const current = result[p.voteId];
+          if (!current || timeMs > current.timeMs) {
+            result[p.voteId] = { timeMs, name: p.name, peapleId: p._id };
+          }
+        }
+        return result;
+      }
+
+      function formatTimeTenth(ms) {
+        const d = new Date(ms + 9 * 60 * 60 * 1000);
+        const pad = (n) => String(n).padStart(2, '0');
+        const tenth = Math.floor(d.getMilliseconds() / 100);
+        return `<br/><br/>${pad(d.getHours())}시${pad(d.getMinutes())}분${pad(d.getSeconds())}.${tenth}초`;
+      }
+
       function renderOwnerControls() {
         const ownerPanel = $('ownerControls');
         ownerPanel.classList.toggle('hidden', !state.isOwner);
@@ -701,6 +723,7 @@
       function renderVotes() {
         const canVote = !!state.ownerReady;
         const counts = computeVoteCounts();
+        const lastByItem = computeLastVotesByItem();
         const grid = $('votesGrid');
         grid.innerHTML = '';
         const items = Array.from(state.voteItems.values());
@@ -711,9 +734,14 @@
           card.className = 'card vote-item';
           const votedThis =
             (state.peaples.get(state.myPeapleId || '') || {}).voteId === it._id;
+          const lastInfo = lastByItem[it._id];
+          const lastText = lastInfo
+            ? `${lastInfo.name} ${formatTimeTenth(lastInfo.timeMs)}`
+            : '-';
           card.innerHTML = `
             <h3>${it.name}</h3>
             <div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
+             <div class="subtle">마지막 투표: ${lastText}</div>
             ${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
             <div class="row"><button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '변경' : '투표'}</button></div>
           `;
