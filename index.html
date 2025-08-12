@@ -3,17 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Vote Game</title>
+    <title>Vote Game v2</title>
     <style>
       :root {
-        --bg: #0b1020;
-        --panel: #111935;
-        --muted: #9fb0d0;
-        --text: #e8efff;
-        --accent: #6ea8ff;
-        --accent-2: #9bdb6b;
-        --danger: #ff6e6e;
-        --warning: #ffd56e;
+        /* Pastel mobile tone inspired by provided image */
+        --bg: #ffe7db; /* peach */
+        --panel: #fff5ef; /* light card */
+        --text: #2a2a2a; /* dark text */
+        --muted: #7c7a7a; /* muted text */
+        --accent: #2f74c0; /* primary blue */
+        --accent-2: #4cb86e; /* success green */
+        --danger: #ec6a6a; /* danger */
+        --warning: #e4a83a; /* warning */
+        --chip: #f7e6de; /* chip bg */
+      }
+
+      * {
+        box-sizing: border-box;
       }
       html,
       body {
@@ -25,252 +31,326 @@
           ui-sans-serif,
           system-ui,
           -apple-system,
-          Segoe UI,
+          'Segoe UI',
           Roboto,
           Helvetica,
           Arial,
-          Apple Color Emoji,
-          Segoe UI Emoji;
+          'Apple Color Emoji',
+          'Segoe UI Emoji';
       }
-      .container {
-        max-width: 1100px;
+
+      .app {
+        max-width: 420px;
         margin: 0 auto;
-        padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
       }
-      h1 {
-        font-size: 22px;
-        margin: 4px 0 16px;
+
+      .header {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        padding: 16px 20px 8px;
+        z-index: 10;
       }
-      h2 {
-        font-size: 18px;
-        margin: 24px 0 12px;
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand-logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+      }
+      .brand-title {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+      .subtle {
         color: var(--muted);
+        font-size: 12px;
       }
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
+
+      .content {
+        flex: 1;
+        padding: 8px 16px 24px;
       }
-      .panel {
+
+      /* Cards */
+      .card {
         background: var(--panel);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        border-radius: 16px;
         padding: 16px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       }
+
+      /* Inputs/Buttons */
       .row {
         display: flex;
-        gap: 8px;
         align-items: center;
+        gap: 10px;
         flex-wrap: wrap;
-      }
-      .row > * {
-        flex: 0 0 auto;
       }
       input,
       button {
-        height: 36px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: #0e1733;
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: white;
         color: var(--text);
-        padding: 0 10px;
+        padding: 0 12px;
+        font-size: 16px;
       }
       input {
-        min-width: 180px;
+        flex: 1;
+        min-width: 160px;
       }
-      input:disabled {
-        opacity: 0.6;
+      input::placeholder {
+        color: #b6b1ac;
       }
       button {
+        background: var(--accent);
+        color: white;
         cursor: pointer;
-        background: #16224a;
       }
-      button:hover {
-        background: #1b2a5d;
+      button.secondary {
+        background: #e7eef9;
+        color: var(--accent);
       }
-      button:disabled {
-        opacity: 0.5;
+      button.ghost {
+        background: transparent;
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      button.danger {
+        background: var(--danger);
+      }
+      button[disabled] {
+        opacity: 0.6;
         cursor: not-allowed;
       }
-      .btn-accent {
-        background: #1d3a7a;
-        border-color: #2b5bd7;
+
+      .grid-rooms {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .btn-danger {
-        background: #5a1f1f;
-        border-color: #a33232;
-      }
-      .list {
+      .room-card {
         display: grid;
         gap: 8px;
+        align-content: start;
+        cursor: pointer;
+        transition: transform 0.08s ease;
+      }
+      .room-card:hover {
+        transform: translateY(-2px);
+      }
+      .room-title {
+        font-weight: 700;
+        font-size: 16px;
       }
       .chip {
         display: inline-flex;
-        gap: 8px;
         align-items: center;
-        background: #0f1a3a;
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        gap: 6px;
         padding: 6px 10px;
         border-radius: 999px;
-        font-size: 13px;
+        background: var(--chip);
         color: var(--muted);
-      }
-      .muted {
-        color: var(--muted);
-      }
-      .small {
         font-size: 12px;
+      }
+
+      .section-title {
+        margin: 10px 0 8px;
         color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
       }
       .divider {
         height: 1px;
-        background: rgba(255, 255, 255, 0.06);
+        background: rgba(0, 0, 0, 0.06);
         margin: 12px 0;
       }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* Votes */
       .votes-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .card {
-        background: #0f1a3a;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 10px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .card h3 {
+      .vote-item h3 {
         margin: 0;
         font-size: 16px;
       }
       .count {
-        font-weight: 600;
         color: var(--accent-2);
+        font-weight: 800;
       }
       .warning {
         color: var(--warning);
         font-size: 12px;
       }
-      .center {
-        text-align: center;
+
+      /* Footer nav (minimal) */
+      .footer {
+        position: sticky;
+        bottom: 0;
+        background: var(--bg);
+        padding: 10px 14px 16px;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
       }
-      .kbd {
-        background: #0b132b;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 2px 6px;
-        border-radius: 6px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          'Liberation Mono', 'Courier New', monospace;
+      .footer .row {
+        justify-content: space-between;
       }
-      .table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      .table th,
-      .table td {
-        padding: 6px 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        text-align: left;
-        font-size: 13px;
-      }
-      .row-gap {
+
+      /* Modal-ish inline create panel */
+      .create-panel {
         display: grid;
         gap: 10px;
-      }
-      .hidden {
-        display: none !important;
-      }
-      a {
-        color: var(--accent);
-        text-decoration: none;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Vote Game</h1>
-      <div class="panel">
-        <div class="row-gap">
+    <div class="app">
+      <div class="header">
+        <div class="brand">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-title">Billy Vote</div>
+            <div class="subtle">간단한 아이템 투표</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- View 1: Welcome / Name -->
+        <section id="view-welcome" class="card">
+          <h2 style="margin: 0 0 8px">반가워요!</h2>
+          <div class="subtle" style="margin-bottom: 12px">
+            먼저 닉네임을 알려주세요.
+          </div>
           <div class="row">
-            <label>이름</label>
             <input id="nameInput" placeholder="닉네임" />
-            <button id="saveNameBtn">이름 저장</button>
-            <span class="small"
-              >저장된 이름:
-              <span id="savedName" class="kbd muted">-</span></span
-            >
+            <button id="goRoomsBtn">계속하기</button>
           </div>
-          <div class="row">
-            <label>방 키</label>
-            <input id="roomKeyInput" placeholder="예: ABC123" />
-            <button id="createRoomBtn" class="btn-accent">방 만들기</button>
-            <button id="joinRoomBtn">입장하기</button>
-            <span class="small"
-              >현재 방: <span id="currentRoom" class="kbd muted">-</span></span
-            >
-          </div>
-        </div>
-      </div>
+        </section>
 
-      <div class="grid" style="margin-top: 16px">
-        <div class="panel">
-          <h2>참여자</h2>
-          <div id="peaplesList" class="list"></div>
-        </div>
-
-        <div class="panel">
-          <h2>방 정보</h2>
-          <div class="list">
-            <div>Room ID: <span id="roomIdLabel" class="kbd">-</span></div>
-            <div>Room Key: <span id="roomKeyLabel" class="kbd">-</span></div>
-            <div>
-              내 Peaple ID: <span id="myPeapleIdLabel" class="kbd">-</span>
-            </div>
-            <div>내 역할: <span id="myRoleLabel" class="kbd">-</span></div>
-            <div>
-              방장 시작 상태: <span id="ownerReadyLabel" class="kbd">-</span>
+        <!-- View 2: Room list / create -->
+        <section id="view-rooms" class="hidden">
+          <div class="row" style="margin-bottom: 12px">
+            <div class="card" style="flex: 1">
+              <div
+                class="row"
+                style="justify-content: space-between; align-items: center"
+              >
+                <div>
+                  <div class="section-title">현재 닉네임</div>
+                  <div><span id="savedName" class="chip">-</span></div>
+                </div>
+                <button id="editNameBtn" class="secondary">이름 변경</button>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div class="row" style="margin: 6px 0 12px">
+            <button id="openCreateBtn" class="ghost">방 만들기</button>
+            <button id="refreshRoomsBtn" class="secondary">새로고침</button>
+          </div>
+
+          <div
+            id="createPanel"
+            class="card create-panel hidden"
+            style="margin-bottom: 12px"
+          >
+            <div class="section-title">새로운 방 이름</div>
+            <div class="row">
+              <input
+                id="createRoomNameInput"
+                placeholder="예: 회식 장소 투표"
+              />
+            </div>
+            <div class="row" style="justify-content: flex-end">
+              <button id="cancelCreateBtn" class="secondary">취소</button>
+              <button id="confirmCreateBtn">생성</button>
+            </div>
+          </div>
+
+          <div class="section-title">방 리스트</div>
+          <div id="roomsGrid" class="grid-rooms"></div>
+        </section>
+
+        <!-- View 3: Room -->
+        <section id="view-room" class="hidden">
+          <div class="card" style="margin-bottom: 12px">
+            <div class="row" style="justify-content: space-between">
+              <div>
+                <div class="section-title">방 이름</div>
+                <div><span id="roomKeyLabel" class="chip">-</span></div>
+              </div>
+              <div>
+                <div class="section-title">내 역할</div>
+                <div><span id="myRoleLabel" class="chip">-</span></div>
+              </div>
+              <div>
+                <div class="section-title">시작 상태</div>
+                <div><span id="ownerReadyLabel" class="chip">-</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="ownerControls"
+            class="card hidden"
+            style="margin-bottom: 12px"
+          >
+            <h3 style="margin-top: 0">방장 전용</h3>
+            <div class="row" style="margin-bottom: 8px">
+              <input id="voteItemNameInput" placeholder="아이템 이름" />
+              <button id="addVoteItemBtn" class="secondary">추가</button>
+            </div>
+            <div class="row">
+              <button id="startBtn">시작</button>
+              <button id="stopBtn" class="danger">멈추기</button>
+            </div>
+            <div class="divider"></div>
+            <div id="ownerItems" class="row" style="flex-wrap: wrap"></div>
+          </div>
+
+          <div class="card" style="margin-bottom: 12px">
+            <h3 style="margin: 0 0 8px">참여자</h3>
+            <div id="peaplesList" class="row" style="flex-wrap: wrap"></div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin: 0 0 6px">투표</h3>
+            <div class="subtle" style="margin-bottom: 8px">
+              방장의 <b>시작</b> 이후부터 투표할 수 있습니다. 각 아이템은 최대
+              6표까지 허용됩니다.
+            </div>
+            <div id="votesGrid" class="votes-grid"></div>
+          </div>
+        </section>
       </div>
 
-      <div id="ownerControls" class="panel hidden" style="margin-top: 16px">
-        <h2>방장 전용: 아이템 관리</h2>
+      <div class="footer">
         <div class="row">
-          <input id="voteItemNameInput" placeholder="아이템 이름" />
-          <button id="addVoteItemBtn">추가</button>
-          <button id="startBtn" class="btn-accent">시작하기</button>
+          <button id="navToRoomsBtn" class="secondary">방 리스트</button>
+          <button id="leaveRoomBtn" class="ghost">방 나가기</button>
         </div>
-        <div class="divider"></div>
-        <div id="ownerItems" class="list"></div>
-      </div>
-
-      <div class="panel" style="margin-top: 16px">
-        <h2>투표</h2>
-        <div class="small muted">
-          방장의 <span class="kbd">isReady</span>가
-          <span class="kbd">true</span>가 된 이후부터 투표할 수 있습니다. 각
-          아이템은 최대 <span class="kbd">6표</span>까지 허용됩니다.
-        </div>
-        <div class="divider"></div>
-        <div id="votesGrid" class="votes-grid"></div>
-      </div>
-
-      <div class="panel" style="margin-top: 16px">
-        <h2>실시간 투표 현황</h2>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Peaple</th>
-              <th>isOwner</th>
-              <th>isReady</th>
-              <th>voteId</th>
-            </tr>
-          </thead>
-          <tbody id="statusTable"></tbody>
-        </table>
       </div>
     </div>
 
@@ -289,6 +369,7 @@
 
       // ===== State =====
       const state = {
+        view: 'welcome',
         name: localStorage.getItem('vg_name') || '',
         roomKey: localStorage.getItem('vg_roomKey') || '',
         roomId: null,
@@ -297,23 +378,24 @@
         ownerReady: false,
         peaples: new Map(), // id -> peaple
         voteItems: new Map(), // id -> voteItem
-        ws: null,
-        wsConnected: false,
-        subIds: [],
-        pollHandle: null,
+        roomsPollHandle: null,
         voteWs: null,
         voteWsConnected: false,
       };
 
       // ===== Helpers: DOM =====
       const $ = (id) => document.getElementById(id);
-
-      function setSavedLabels() {
+      function showView(name) {
+        state.view = name;
+        ['view-welcome', 'view-rooms', 'view-room'].forEach((v) => {
+          const el = $(v);
+          if (!el) return;
+          el.classList.toggle('hidden', v !== name);
+        });
+      }
+      function setTopLabels() {
         $('savedName').textContent = state.name || '-';
-        $('currentRoom').textContent = state.roomKey || '-';
-        $('roomIdLabel').textContent = state.roomId || '-';
         $('roomKeyLabel').textContent = state.roomKey || '-';
-        $('myPeapleIdLabel').textContent = state.myPeapleId || '-';
         $('myRoleLabel').textContent = state.isOwner
           ? '방장'
           : state.myPeapleId
@@ -322,7 +404,7 @@
         $('ownerReadyLabel').textContent = String(state.ownerReady);
       }
 
-      // ===== Helpers: GraphQL HTTP =====
+      // ===== GraphQL HTTP =====
       async function gqlRequest(query, variables) {
         const res = await fetch(GRAPHQL_HTTP_URL, {
           method: 'POST',
@@ -336,170 +418,23 @@
         return json.data;
       }
 
-      // ===== Helpers: GraphQL Subscriptions (graphql-ws protocol) =====
-      function connectWs() {
-        if (state.ws) {
-          try {
-            state.ws.close();
-          } catch (e) {}
-        }
-        const ws = new WebSocket(GRAPHQL_WS_URL, 'graphql-transport-ws');
-        state.ws = ws;
-        state.wsConnected = false;
-        state.subIds = [];
-
-        ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'connection_init', payload: {} }));
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'connection_ack') {
-              state.wsConnected = true;
-              // Start subscriptions
-              // startPeapleSubscriptions(); // disabled: using native WS instead
-            } else if (msg.type === 'ping') {
-              // respond to keep-alive
-              try {
-                ws.send(JSON.stringify({ type: 'pong' }));
-              } catch (_) {}
-            } else if (msg.type === 'next' || msg.type === 'data') {
-              // support both new ('next') and legacy ('data') just in case
-              const payload =
-                (msg.payload && msg.payload.data) || msg.payload?.data;
-              if (!payload) return;
-              if (
-                payload.createdPeaple ||
-                payload.updatedOnePeaple ||
-                payload.deletedOnePeaple
-              ) {
-                // Server-side filter already limits to our room; just refresh
-                refreshAll();
-              }
-            } else if (msg.type === 'error') {
-              console.warn('WS error', msg);
-            } else if (msg.type === 'complete') {
-              // subscription complete
-              console.log('subscription complete', msg);
-            }
-          } catch (e) {
-            console.warn('WS parse error', e);
-          }
-        };
-
-        ws.onclose = () => {
-          state.wsConnected = false;
-          // Simple reconnect
-          setTimeout(() => {
-            if (state.roomId) connectWs();
-          }, 1500);
-        };
-      }
-
-      // ===== Native WS for realtime =====
-      function connectRoomWs() {
-        if (!state.roomId) return;
-        if (state.voteWs) {
-          try {
-            state.voteWs.close();
-          } catch (_) {}
-        }
-        const ws = new WebSocket(VOTE_WS_URL);
-        state.voteWs = ws;
-        state.voteWsConnected = false;
-
-        ws.onopen = () => {
-          state.voteWsConnected = true;
-          ws.send(
-            JSON.stringify({
-              type: 'join',
-              roomId: String(state.roomId),
-              name: state.name || undefined,
-            }),
-          );
-        };
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data);
-            if (msg.type === 'event' && msg.roomId === String(state.roomId)) {
-              if (msg.event === 'refresh' || msg.event === 'presence') {
-                refreshAll();
-              }
-              // presence 등 다른 이벤트는 필요 시 처리
-            }
-          } catch (e) {
-            console.warn('vote-ws parse error', e);
-          }
-        };
-        ws.onclose = () => {
-          state.voteWsConnected = false;
-          setTimeout(() => {
-            if (state.roomId) connectRoomWs();
-          }, 1500);
-        };
-        ws.onerror = (e) => console.warn('vote-ws error', e);
-      }
-
-      function wsBroadcast(event, payload) {
-        if (!state.voteWsConnected || !state.roomId) return;
-        try {
-          state.voteWs.send(
-            JSON.stringify({
-              type: 'broadcast',
-              roomId: String(state.roomId),
-              event,
-              payload,
-            }),
-          );
-        } catch (_) {}
-      }
-
-      function wsSubscribe(query, variables) {
-        if (!state.wsConnected) return;
-        const id = String(Math.random()).slice(2);
-        state.subIds.push(id);
-        state.ws.send(
-          JSON.stringify({
-            id,
-            type: 'subscribe',
-            payload: { query, variables },
-          }),
-        );
-      }
-
-      function startPeapleSubscriptions() {
-        if (!state.roomId) return;
-        // Subscribe with proper GraphQL syntax including required input parameter
-        const subCreated = `subscription { 
-          createdPeaple(input: { filter: { roomId: { eq: "${state.roomId}" } } }) { 
-            _id name isOwner isReady voteId roomId 
-          } 
-        }`;
-        const subUpdated = `subscription { 
-          updatedOnePeaple(input: { filter: { roomId: { eq: "${state.roomId}" } } }) { 
-            _id name isOwner isReady voteId roomId 
-          } 
-        }`;
-        const subDeleted = `subscription { 
-          deletedOnePeaple(input: { filter: { roomId: { eq: "${state.roomId}" } } }) { 
-            _id 
-          } 
-        }`;
-        wsSubscribe(subCreated, {});
-        wsSubscribe(subUpdated, {});
-        wsSubscribe(subDeleted, {});
-      }
-
       // ===== Queries/Mutations =====
+      async function queryRooms() {
+        const query = `
+          query { rooms(paging: { first: 50 }) { edges { node { _id roomKey } } } }
+        `;
+        const data = await gqlRequest(query, {});
+        return (data.rooms.edges || []).map((e) => e.node);
+      }
+
       async function queryRoomByKey(roomKey) {
         const query = `
-        query($roomKey: String!) {
-          rooms(paging: {first: 1}, filter: { roomKey: { eq: $roomKey } }) {
-            edges { node { _id roomKey } }
+          query($roomKey: String!) {
+            rooms(paging: {first: 1}, filter: { roomKey: { eq: $roomKey } }) {
+              edges { node { _id roomKey } }
+            }
           }
-        }
-      `;
+        `;
         const data = await gqlRequest(query, { roomKey });
         const edges = data.rooms.edges || [];
         return edges.length ? edges[0].node : null;
@@ -507,11 +442,10 @@
 
       async function createRoom(roomKey) {
         const mutation = `
-        mutation($room: CreateRoom!) {
-          createOneRoom(input: { room: $room }) { _id roomKey }
-        }
-      `;
-        // Note: _id is required by schema; we pass a timestamp string to satisfy GraphQL non-null.
+          mutation($room: CreateRoom!) {
+            createOneRoom(input: { room: $room }) { _id roomKey }
+          }
+        `;
         const room = { _id: String(Date.now()), roomKey };
         const data = await gqlRequest(mutation, { room });
         return data.createOneRoom;
@@ -519,10 +453,10 @@
 
       async function createPeaple({ name, roomId, isOwner }) {
         const mutation = `
-        mutation($peaple: CreatePeaple!) {
-          createOnePeaple(input: { peaple: $peaple }) { _id name isOwner isReady roomId voteId }
-        }
-      `;
+          mutation($peaple: CreatePeaple!) {
+            createOnePeaple(input: { peaple: $peaple }) { _id name isOwner isReady roomId voteId }
+          }
+        `;
         const peaple = {
           _id: String(Date.now()),
           name,
@@ -538,14 +472,13 @@
         try {
           return await createPeaple({ name, roomId, isOwner });
         } catch (e) {
-          // likely Unique(name, roomId) violation -> fetch existing
           const query = `
-          query($name: String!, $roomId: String!) {
-            peaples(paging: {first: 1}, filter: { and: [ { name: { eq: $name } }, { roomId: { eq: $roomId } } ] }) {
-              edges { node { _id name isOwner isReady roomId voteId } }
+            query($name: String!, $roomId: String!) {
+              peaples(paging: {first: 1}, filter: { and: [ { name: { eq: $name } }, { roomId: { eq: $roomId } } ] }) {
+                edges { node { _id name isOwner isReady roomId voteId } }
+              }
             }
-          }
-        `;
+          `;
           const data = await gqlRequest(query, {
             name,
             roomId: String(roomId),
@@ -558,20 +491,20 @@
 
       async function updatePeaple(id, update) {
         const mutation = `
-        mutation($id: ID!, $update: UpdatePeaple!) {
-          updateOnePeaple(input: { id: $id, update: $update }) { _id isReady voteId }
-        }
-      `;
+          mutation($id: ID!, $update: UpdatePeaple!) {
+            updateOnePeaple(input: { id: $id, update: $update }) { _id isReady voteId }
+          }
+        `;
         const data = await gqlRequest(mutation, { id: String(id), update });
         return data.updateOnePeaple;
       }
 
       async function createVoteItem({ name, roomId }) {
         const mutation = `
-        mutation($voteItem: CreateVoteItem!) {
-          createOneVoteItem(input: { voteItem: $voteItem }) { _id name roomId }
-        }
-      `;
+          mutation($voteItem: CreateVoteItem!) {
+            createOneVoteItem(input: { voteItem: $voteItem }) { _id name roomId }
+          }
+        `;
         const voteItem = {
           _id: String(Date.now()),
           name,
@@ -583,29 +516,108 @@
 
       async function queryVoteItems(roomId) {
         const query = `
-        query($roomId: String!) {
-          voteItems(paging: { first: 50 }, filter: { roomId: { eq: $roomId } }) {
-            edges { node { _id name roomId } }
+          query($roomId: String!) {
+            voteItems(paging: { first: 50 }, filter: { roomId: { eq: $roomId } }) {
+              edges { node { _id name roomId } }
+            }
           }
-        }
-      `;
+        `;
         const data = await gqlRequest(query, { roomId: String(roomId) });
         return (data.voteItems.edges || []).map((e) => e.node);
       }
 
       async function queryPeaples(roomId) {
         const query = `
-        query($roomId: String!) {
-          peaples(paging: { first: 50 }, filter: { roomId: { eq: $roomId } }) {
-            edges { node { _id name isOwner isReady voteId roomId } }
+          query($roomId: String!) {
+            peaples(paging: { first: 50 }, filter: { roomId: { eq: $roomId } }) {
+              edges { node { _id name isOwner isReady voteId roomId } }
+            }
           }
-        }
-      `;
+        `;
         const data = await gqlRequest(query, { roomId: String(roomId) });
         return (data.peaples.edges || []).map((e) => e.node);
       }
 
-      // ===== UI Render =====
+      // ===== Native WS for realtime (room scoped) =====
+      function connectRoomWs() {
+        if (!state.roomId) return;
+        if (state.voteWs) {
+          try {
+            state.voteWs.close();
+          } catch (_) {}
+        }
+        const ws = new WebSocket(VOTE_WS_URL);
+        state.voteWs = ws;
+        state.voteWsConnected = false;
+        ws.onopen = () => {
+          state.voteWsConnected = true;
+          ws.send(
+            JSON.stringify({
+              type: 'join',
+              roomId: String(state.roomId),
+              name: state.name || undefined,
+            }),
+          );
+        };
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === 'event' && msg.roomId === String(state.roomId)) {
+              if (msg.event === 'refresh' || msg.event === 'presence')
+                refreshAll();
+            }
+          } catch (e) {
+            console.warn('vote-ws parse error', e);
+          }
+        };
+        ws.onclose = () => {
+          state.voteWsConnected = false;
+          setTimeout(() => {
+            if (state.roomId) connectRoomWs();
+          }, 1500);
+        };
+        ws.onerror = (e) => console.warn('vote-ws error', e);
+      }
+      function wsBroadcast(event, payload) {
+        if (!state.voteWsConnected || !state.roomId) return;
+        try {
+          state.voteWs.send(
+            JSON.stringify({
+              type: 'broadcast',
+              roomId: String(state.roomId),
+              event,
+              payload,
+            }),
+          );
+        } catch (_) {}
+      }
+
+      // ===== UI renders =====
+      function renderRooms(rooms) {
+        const grid = $('roomsGrid');
+        grid.innerHTML = '';
+        for (const r of rooms) {
+          const div = document.createElement('div');
+          div.className = 'card room-card';
+          div.innerHTML = `
+            <div class="room-title">${r.roomKey}</div>
+            <div class="row" style="justify-content:space-between">
+              <span class="chip">인원 ${r.count}</span>
+              <button class="secondary" data-join="${r._id}">입장</button>
+            </div>
+          `;
+          grid.appendChild(div);
+        }
+        grid.querySelectorAll('button[data-join]').forEach((btn) => {
+          btn.addEventListener('click', async (e) => {
+            const roomId = e.currentTarget.getAttribute('data-join');
+            const roomKey = rooms.find((x) => x._id === roomId)?.roomKey;
+            if (!roomKey) return;
+            await enterRoom({ roomKey, create: false });
+          });
+        });
+      }
+
       function renderPeaples() {
         const list = $('peaplesList');
         list.innerHTML = '';
@@ -613,26 +625,19 @@
           a.name.localeCompare(b.name),
         );
         for (const p of arr) {
-          const wrap = document.createElement('div');
-          wrap.className = 'row';
-          wrap.innerHTML = `
-          <span class="chip">${p.name}</span>
-          <span class="small">id=<span class="kbd">${p._id}</span></span>
-          <span class="small">isOwner=<span class="kbd">${p.isOwner}</span></span>
-          <span class="small">isReady=<span class="kbd">${p.isReady}</span></span>
-          <span class="small">voteId=<span class="kbd">${p.voteId || '-'}</span></span>
-        `;
-          list.appendChild(wrap);
+          const span = document.createElement('span');
+          span.className = 'chip';
+          span.textContent = p.name + (p.isOwner ? ' (방장)' : '');
+          list.appendChild(span);
         }
       }
 
       function computeVoteCounts() {
         const counts = {};
         for (const [id] of state.voteItems) counts[id] = 0;
-        for (const p of state.peaples.values()) {
+        for (const p of state.peaples.values())
           if (p.voteId && counts.hasOwnProperty(p.voteId))
             counts[p.voteId] += 1;
-        }
         return counts;
       }
 
@@ -643,9 +648,10 @@
         list.innerHTML = '';
         const items = Array.from(state.voteItems.values());
         for (const it of items) {
-          const div = document.createElement('div');
-          div.innerHTML = `<span class="chip">${it.name}</span> <span class="small">id=<span class="kbd">${it._id}</span></span>`;
-          list.appendChild(div);
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = `${it.name}`;
+          list.appendChild(chip);
         }
       }
 
@@ -659,20 +665,17 @@
           const cnt = counts[it._id] || 0;
           const atLimit = cnt >= MAX_VOTES_PER_ITEM;
           const card = document.createElement('div');
-          card.className = 'card';
+          card.className = 'card vote-item';
           const votedThis =
             (state.peaples.get(state.myPeapleId || '') || {}).voteId === it._id;
           card.innerHTML = `
-          <h3>${it.name}</h3>
-          <div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
-          ${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
-          <div class="row">
-            <button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '변경' : '투표'}</button>
-          </div>
-        `;
+            <h3>${it.name}</h3>
+            <div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
+            ${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
+            <div class="row"><button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '변경' : '투표'}</button></div>
+          `;
           grid.appendChild(card);
         }
-        // bind buttons
         grid.querySelectorAll('button[data-vote]').forEach((btn) => {
           btn.addEventListener('click', async (e) => {
             const voteId = e.currentTarget.getAttribute('data-vote');
@@ -689,25 +692,11 @@
         });
       }
 
-      function renderStatus() {
-        const tbody = $('statusTable');
-        tbody.innerHTML = '';
-        const arr = Array.from(state.peaples.values()).sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
-        for (const p of arr) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${p.name}</td><td>${p.isOwner}</td><td>${p.isReady}</td><td>${p.voteId || '-'}</td>`;
-          tbody.appendChild(tr);
-        }
-      }
-
       function fullRender() {
-        setSavedLabels();
+        setTopLabels();
         renderPeaples();
         renderOwnerControls();
         renderVotes();
-        renderStatus();
       }
 
       // ===== Actions =====
@@ -726,7 +715,6 @@
         if (state.myPeapleId && state.peaples.has(state.myPeapleId)) {
           state.isOwner = !!state.peaples.get(state.myPeapleId).isOwner;
         } else if (state.name) {
-          // try to resolve my peaple id by name
           const me = peaples.find((p) => p.name === state.name);
           if (me) {
             state.myPeapleId = me._id;
@@ -737,53 +725,54 @@
             state.isOwner = !!me.isOwner;
           }
         }
-        // owner ready
         const owner = peaples.find((p) => p.isOwner);
         state.ownerReady = owner ? !!owner.isReady : false;
 
         fullRender();
       }
 
-      async function enterRoomFlow({ create }) {
-        const name = $('nameInput').value.trim() || state.name;
-        const roomKey = $('roomKeyInput').value.trim() || state.roomKey;
-        if (!name) return alert('이름을 입력하세요.');
-        if (!roomKey) return alert('방 키를 입력하세요.');
+      async function loadRoomsList() {
+        const rooms = await queryRooms();
+        // attach participant counts (parallel)
+        const enriched = await Promise.all(
+          rooms.map(async (r) => {
+            const peaples = await queryPeaples(r._id);
+            return { ...r, count: peaples.length };
+          }),
+        );
+        renderRooms(enriched);
+      }
 
+      async function enterRoom({ roomKey, create }) {
+        if (!state.name) return alert('닉네임을 먼저 입력하세요.');
         try {
-          // resolve room
           let room = await queryRoomByKey(roomKey);
           if (!room) {
-            if (!create)
-              return alert('존재하지 않는 방입니다. 방 만들기를 사용하세요.');
+            if (!create) return alert('존재하지 않는 방입니다.');
             room = await createRoom(roomKey);
           }
-
-          state.name = name;
           state.roomKey = room.roomKey;
           state.roomId = room._id;
-          localStorage.setItem('vg_name', state.name);
           localStorage.setItem('vg_roomKey', state.roomKey);
           localStorage.setItem(`vg_roomId_for_${state.roomKey}`, state.roomId);
 
-          // ensure peaple
           const peaple = await ensurePeaple({
-            name,
+            name: state.name,
             roomId: room._id,
             isOwner: !!create,
           });
           state.myPeapleId = peaple._id;
-          localStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
           state.isOwner = !!peaple.isOwner;
+          localStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
 
-          setSavedLabels();
+          setTopLabels();
           await refreshAll();
           connectRoomWs();
-          // 알림: 다른 참가자 화면 갱신
+          showView('view-room');
           wsBroadcast('refresh', { reason: 'join_or_create' });
         } catch (err) {
           console.error(err);
-          alert('입장/생성 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+          alert('입장/생성 중 오류가 발생했습니다.');
         }
       }
 
@@ -815,47 +804,75 @@
           alert('시작 처리 실패');
         }
       }
+      async function onStop() {
+        if (!state.isOwner) return alert('방장만 멈출 수 있습니다.');
+        if (!state.myPeapleId)
+          return alert('내 Peaple ID를 확인할 수 없습니다.');
+        try {
+          await updatePeaple(state.myPeapleId, { isReady: false });
+          wsBroadcast('refresh', { reason: 'owner_stop' });
+          await refreshAll();
+        } catch (err) {
+          console.error(err);
+          alert('멈춤 처리 실패');
+        }
+      }
 
       // ===== Events =====
-      $('saveNameBtn').addEventListener('click', () => {
+      $('goRoomsBtn').addEventListener('click', async () => {
         const val = $('nameInput').value.trim();
-        if (!val) return alert('이름을 입력하세요.');
+        if (!val) return alert('닉네임을 입력해주세요.');
         state.name = val;
         localStorage.setItem('vg_name', state.name);
-        setSavedLabels();
+        $('savedName').textContent = state.name;
+        showView('view-rooms');
+        await loadRoomsList();
+        if (state.roomsPollHandle) clearInterval(state.roomsPollHandle);
+        state.roomsPollHandle = setInterval(loadRoomsList, 5000);
       });
-      $('createRoomBtn').addEventListener('click', () =>
-        enterRoomFlow({ create: true }),
+
+      $('editNameBtn').addEventListener('click', () => {
+        showView('view-welcome');
+        $('nameInput').value = state.name || '';
+      });
+      $('refreshRoomsBtn').addEventListener('click', loadRoomsList);
+      $('openCreateBtn').addEventListener('click', () =>
+        $('createPanel').classList.remove('hidden'),
       );
-      $('joinRoomBtn').addEventListener('click', () =>
-        enterRoomFlow({ create: false }),
+      $('cancelCreateBtn').addEventListener('click', () =>
+        $('createPanel').classList.add('hidden'),
       );
+      $('confirmCreateBtn').addEventListener('click', async () => {
+        const key = $('createRoomNameInput').value.trim();
+        if (!key) return;
+        $('createPanel').classList.add('hidden');
+        await enterRoom({ roomKey: key, create: true });
+      });
+
       $('addVoteItemBtn').addEventListener('click', onAddVoteItem);
       $('startBtn').addEventListener('click', onStart);
+      $('stopBtn').addEventListener('click', onStop);
+      $('navToRoomsBtn').addEventListener('click', async () => {
+        showView('view-rooms');
+        await loadRoomsList();
+      });
+      $('leaveRoomBtn').addEventListener('click', () => {
+        showView('view-rooms');
+      });
 
       // ===== Init =====
-      function initInputsFromStorage() {
+      (function init() {
         $('nameInput').value = state.name || '';
-        $('roomKeyInput').value = state.roomKey || '';
-        setSavedLabels();
-      }
-
-      async function tryResumeSession() {
-        if (!state.name || !state.roomKey) return;
-        const savedRoomId = localStorage.getItem(
-          `vg_roomId_for_${state.roomKey}`,
-        );
-        if (!savedRoomId) return;
-        state.roomId = savedRoomId;
-        const savedPeapleId = localStorage.getItem(
-          `vg_peapleId_${state.roomId}`,
-        );
-        if (savedPeapleId) state.myPeapleId = savedPeapleId;
-        await refreshAll();
-        connectRoomWs();
-      }
-
-      initInputsFromStorage();
+        $('savedName').textContent = state.name || '-';
+        if (state.name) {
+          showView('view-rooms');
+          loadRoomsList();
+          if (state.roomsPollHandle) clearInterval(state.roomsPollHandle);
+          state.roomsPollHandle = setInterval(loadRoomsList, 5000);
+        } else {
+          showView('view-welcome');
+        }
+      })();
     </script>
   </body>
 </html>
