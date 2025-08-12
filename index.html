@@ -13,8 +13,8 @@
     <style>
       :root {
         /* Pastel mobile tone inspired by provided image */
-        --bg: #ffe7db; /* peach */
-        --panel: #fff5ef; /* light card */
+        --bg: #f7f7f7;
+        --panel: #f0f0f0; /* light card */
         --text: #2a2a2a; /* dark text */
         --muted: #7c7a7a; /* muted text */
         --accent: #2f74c0; /* primary blue */
@@ -207,7 +207,7 @@
         background: #fff; /* 항목 아이템 배경색 white */
       }
       .vote-item.full::after {
-        content: '모집마감 (' attr(data-rank) '위)';
+        content: '모집마감';
         position: absolute;
         inset: 0;
         background: rgba(255, 255, 255, 0.85);
@@ -240,6 +240,7 @@
         background: var(--bg);
         padding: 10px 14px 16px;
         border-top: 1px solid rgba(0, 0, 0, 0.06);
+        z-index: 10;
       }
       .footer .row {
         justify-content: space-between;
@@ -385,7 +386,9 @@
             <h3 style="margin-top: 0">투표장 전용</h3>
             <div class="row">
               <button id="startBtn">투표 시작</button>
-              <button id="stopBtn">투표 완료</button>
+              <button id="stopBtn" style="background-color: gray; color: white">
+                투표 완료
+              </button>
               <button id="deleteRoomBtn" class="danger">투표 삭제</button>
             </div>
             <div class="divider"></div>
@@ -960,12 +963,14 @@
           const lastInfo = lastByItem[it._id];
 
           card.innerHTML = `
-            <h3>${it.name}</h3>
-            <div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
+						<div class="vote-item-content">
+							<h3>${it.name}</h3>
+							<div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
 
-            ${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
-            <div class="row voters" style="flex-wrap: wrap; margin-top: 6px; margin-bottom: 6px"></div>
-            <div class="row"><button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '완료' : '투표'}</button></div>
+							${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
+							<div class="row voters" style="flex-wrap: wrap; margin-top: 6px; margin-bottom: 6px"></div>
+							<div class="row"><button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '완료' : '투표'}</button></div>
+						</div>
           `;
           // 투표자 리스트 렌더링
           const voters = Array.from(state.peaples.values())
