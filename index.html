@@ -357,21 +357,21 @@
     <script>
       // ===== Config =====
       const GRAPHQL_HTTP_URL =
-        localStorage.getItem('vg_http_url') ||
+        sessionStorage.getItem('vg_http_url') ||
         'https://api.scheduling.co.kr/graphql';
       const GRAPHQL_WS_URL =
-        localStorage.getItem('vg_ws_url') ||
+        sessionStorage.getItem('vg_ws_url') ||
         'wss://api.scheduling.co.kr/graphql';
       const VOTE_WS_URL =
-        localStorage.getItem('vg_vote_ws_url') ||
+        sessionStorage.getItem('vg_vote_ws_url') ||
         'wss://api.scheduling.co.kr/vote-game';
       const MAX_VOTES_PER_ITEM = 6;
 
       // ===== State =====
       const state = {
         view: 'welcome',
-        name: localStorage.getItem('vg_name') || '',
-        roomKey: localStorage.getItem('vg_roomKey') || '',
+        name: sessionStorage.getItem('vg_name') || '',
+        roomKey: sessionStorage.getItem('vg_roomKey') || '',
         roomId: null,
         myPeapleId: null,
         isOwner: false,
@@ -718,7 +718,7 @@
           const me = peaples.find((p) => p.name === state.name);
           if (me) {
             state.myPeapleId = me._id;
-            localStorage.setItem(
+            sessionStorage.setItem(
               `vg_peapleId_${state.roomId}`,
               state.myPeapleId,
             );
@@ -753,8 +753,8 @@
           }
           state.roomKey = room.roomKey;
           state.roomId = room._id;
-          localStorage.setItem('vg_roomKey', state.roomKey);
-          localStorage.setItem(`vg_roomId_for_${state.roomKey}`, state.roomId);
+          sessionStorage.setItem('vg_roomKey', state.roomKey);
+          sessionStorage.setItem(`vg_roomId_for_${state.roomKey}`, state.roomId);
 
           const peaple = await ensurePeaple({
             name: state.name,
@@ -763,7 +763,7 @@
           });
           state.myPeapleId = peaple._id;
           state.isOwner = !!peaple.isOwner;
-          localStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
+          sessionStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
 
           setTopLabels();
           await refreshAll();
@@ -823,7 +823,7 @@
         const val = $('nameInput').value.trim();
         if (!val) return alert('닉네임을 입력해주세요.');
         state.name = val;
-        localStorage.setItem('vg_name', state.name);
+        sessionStorage.setItem('vg_name', state.name);
         $('savedName').textContent = state.name;
         showView('view-rooms');
         await loadRoomsList();
