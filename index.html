@@ -325,6 +325,7 @@
             <div class="row">
               <button id="startBtn">시작</button>
               <button id="stopBtn" class="danger">멈추기</button>
+              <button id="deleteRoomBtn" class="danger">방 삭제</button>
             </div>
             <div class="divider"></div>
             <div id="ownerItems" class="row" style="flex-wrap: wrap"></div>
@@ -499,6 +500,26 @@
         return data.updateOnePeaple;
       }
 
+      // ===== Deletion (use existing GraphQL mutations) =====
+      async function deleteOnePeaple(id) {
+        const mutation = `
+          mutation($id: ID!) {
+            deleteOnePeaple(input: { id: $id }) { _id }
+          }
+        `;
+        const data = await gqlRequest(mutation, { id: String(id) });
+        return data.deleteOnePeaple?._id;
+      }
+      async function deleteOneRoom(id) {
+        const mutation = `
+          mutation($id: ID!) {
+            deleteOneRoom(input: { id: $id }) { _id }
+          }
+        `;
+        const data = await gqlRequest(mutation, { id: String(id) });
+        return data.deleteOneRoom?._id;
+      }
+
       async function createVoteItem({ name, roomId }) {
         const mutation = `
           mutation($voteItem: CreateVoteItem!) {
@@ -625,10 +646,32 @@
           a.name.localeCompare(b.name),
         );
         for (const p of arr) {
-          const span = document.createElement('span');
-          span.className = 'chip';
-          span.textContent = p.name + (p.isOwner ? ' (방장)' : '');
-          list.appendChild(span);
+          const wrap = document.createElement('div');
+          wrap.className = 'row';
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = p.name + (p.isOwner ? ' (방장)' : '');
+          wrap.appendChild(chip);
+          // show kick button only if I'm owner and target is not owner and not me
+          if (state.isOwner && !p.isOwner && p._id !== state.myPeapleId) {
+            const btn = document.createElement('button');
+            btn.className = 'danger';
+            btn.textContent = '강퇴';
+            btn.addEventListener('click', async () => {
+              if (!confirm(`정말 ${p.name} 을(를) 강퇴하시겠어요?`)) return;
+              try {
+                const deletedId = await deleteOnePeaple(p._id);
+                if (!deletedId) return alert('강퇴 실패');
+                wsBroadcast('refresh', { reason: 'kick', targetId: p._id });
+                await refreshAll();
+              } catch (err) {
+                console.error(err);
+                alert('강퇴 실패');
+              }
+            });
+            wrap.appendChild(btn);
+          }
+          list.appendChild(wrap);
         }
       }
 
@@ -754,7 +797,10 @@
           state.roomKey = room.roomKey;
           state.roomId = room._id;
           sessionStorage.setItem('vg_roomKey', state.roomKey);
-          sessionStorage.setItem(`vg_roomId_for_${state.roomKey}`, state.roomId);
+          sessionStorage.setItem(
+            `vg_roomId_for_${state.roomKey}`,
+            state.roomId,
+          );
 
           const peaple = await ensurePeaple({
             name: state.name,
@@ -763,7 +809,10 @@
           });
           state.myPeapleId = peaple._id;
           state.isOwner = !!peaple.isOwner;
-          sessionStorage.setItem(`vg_peapleId_${state.roomId}`, state.myPeapleId);
+          sessionStorage.setItem(
+            `vg_peapleId_${state.roomId}`,
+            state.myPeapleId,
+          );
 
           setTopLabels();
           await refreshAll();
@@ -852,6 +901,33 @@
       $('addVoteItemBtn').addEventListener('click', onAddVoteItem);
       $('startBtn').addEventListener('click', onStart);
       $('stopBtn').addEventListener('click', onStop);
+      $('deleteRoomBtn').addEventListener('click', async () => {
+        if (!state.isOwner) return alert('방장만 삭제할 수 있습니다.');
+        if (!state.roomId) return alert('방 정보를 확인할 수 없습니다.');
+        if (!confirm('정말 이 방을 삭제하시겠어요? 모든 데이터가 사라집니다.'))
+          return;
+        try {
+          const deletedId = await deleteOneRoom(state.roomId);
+          if (!deletedId) return alert('방 삭제 실패');
+          try {
+            wsBroadcast('refresh', { reason: 'room_deleted' });
+          } catch (_) {}
+          // reset local state
+          state.roomId = null;
+          state.roomKey = '';
+          state.myPeapleId = null;
+          state.isOwner = false;
+          state.ownerReady = false;
+          state.peaples.clear();
+          state.voteItems.clear();
+          sessionStorage.removeItem('vg_roomKey');
+          showView('view-rooms');
+          await loadRoomsList();
+        } catch (err) {
+          console.error(err);
+          alert('방 삭제 실패');
+        }
+      });
       $('navToRoomsBtn').addEventListener('click', async () => {
         showView('view-rooms');
         await loadRoomsList();
