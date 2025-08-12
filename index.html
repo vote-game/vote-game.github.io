@@ -508,7 +508,7 @@
           }
         `;
         const data = await gqlRequest(mutation, { id: String(id) });
-        return data.deleteOnePeaple?._id;
+        return !!data.deleteOnePeaple;
       }
       async function deleteOneRoom(id) {
         const mutation = `
@@ -517,7 +517,7 @@
           }
         `;
         const data = await gqlRequest(mutation, { id: String(id) });
-        return data.deleteOneRoom?._id;
+        return !!data.deleteOneRoom;
       }
 
       async function createVoteItem({ name, roomId }) {
@@ -660,8 +660,8 @@
             btn.addEventListener('click', async () => {
               if (!confirm(`정말 ${p.name} 을(를) 강퇴하시겠어요?`)) return;
               try {
-                const deletedId = await deleteOnePeaple(p._id);
-                if (!deletedId) return alert('강퇴 실패');
+                const ok = await deleteOnePeaple(p._id);
+                if (!ok) return alert('강퇴 실패');
                 wsBroadcast('refresh', { reason: 'kick', targetId: p._id });
                 await refreshAll();
               } catch (err) {
@@ -907,8 +907,8 @@
         if (!confirm('정말 이 방을 삭제하시겠어요? 모든 데이터가 사라집니다.'))
           return;
         try {
-          const deletedId = await deleteOneRoom(state.roomId);
-          if (!deletedId) return alert('방 삭제 실패');
+          const ok = await deleteOneRoom(state.roomId);
+          if (!ok) return alert('방 삭제 실패');
           try {
             wsBroadcast('refresh', { reason: 'room_deleted' });
           } catch (_) {}
