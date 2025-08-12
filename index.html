@@ -40,7 +40,7 @@
       }
 
       .app {
-        max-width: 420px;
+        max-width: 960px;
         margin: 0 auto;
         min-height: 100vh;
         display: flex;
@@ -140,6 +140,7 @@
       button[disabled] {
         opacity: 0.6;
         cursor: not-allowed;
+        background-color: gray;
       }
 
       .grid-rooms {
@@ -194,6 +195,24 @@
         gap: 12px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .vote-item {
+        position: relative;
+        background: #fff; /* 항목 아이템 배경색 white */
+      }
+      .vote-item.full::after {
+        content: '모집마감 (' attr(data-rank) '위)';
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: var(--text);
+        font-size: 20px;
+        border-radius: 16px;
+        z-index: 1;
+      }
       .vote-item h3 {
         margin: 0;
         font-size: 16px;
@@ -223,6 +242,41 @@
       .create-panel {
         display: grid;
         gap: 10px;
+      }
+
+      #view-room .vote-item-row {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        background: var(--panel);
+      }
+      #view-room .vote-item-row .chip {
+        background: transparent;
+      }
+      #view-room .vote-item-row button {
+        height: 20px;
+        width: 30px;
+        font-size: 8px;
+        padding: 0;
+        margin: 0;
+      }
+
+      #view-room .peaples-list {
+        margin-top: 8px;
+      }
+      #view-room .peaples-list .row {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        background: var(--panel);
+      }
+      #view-room .peaples-list .chip {
+        background: transparent;
+      }
+      #view-room .peaples-list button {
+        height: 20px;
+        width: 30px;
+        font-size: 8px;
+        padding: 0;
+        margin: 0;
       }
     </style>
   </head>
@@ -269,7 +323,7 @@
           </div>
 
           <div class="row" style="margin: 6px 0 12px">
-            <button id="openCreateBtn" class="ghost">방 만들기</button>
+            <button id="openCreateBtn" class="ghost">투표 만들기</button>
             <button id="refreshRoomsBtn" class="secondary">새로고침</button>
           </div>
 
@@ -278,7 +332,7 @@
             class="card create-panel hidden"
             style="margin-bottom: 12px"
           >
-            <div class="section-title">새로운 방 이름</div>
+            <div class="section-title">새로운 투표 이름</div>
             <div class="row">
               <input
                 id="createRoomNameInput"
@@ -291,7 +345,7 @@
             </div>
           </div>
 
-          <div class="section-title">방 리스트</div>
+          <div class="section-title">투표 리스트</div>
           <div id="roomsGrid" class="grid-rooms"></div>
         </section>
 
@@ -300,7 +354,7 @@
           <div class="card" style="margin-bottom: 12px">
             <div class="row" style="justify-content: space-between">
               <div>
-                <div class="section-title">방 이름</div>
+                <div class="section-title">투표 이름</div>
                 <div><span id="roomKeyLabel" class="chip">-</span></div>
               </div>
               <div>
@@ -319,29 +373,35 @@
             class="card hidden"
             style="margin-bottom: 12px"
           >
-            <h3 style="margin-top: 0">방장 전용</h3>
+            <h3 style="margin-top: 0">투표장 전용</h3>
+            <div class="row">
+              <button id="startBtn">투표 시작</button>
+              <button id="stopBtn">투표 완료</button>
+              <button id="deleteRoomBtn" class="danger">투표 삭제</button>
+            </div>
+            <div class="divider"></div>
             <div class="row" style="margin-bottom: 8px">
               <input id="voteItemNameInput" placeholder="아이템 이름" />
               <button id="addVoteItemBtn" class="secondary">추가</button>
             </div>
-            <div class="row">
-              <button id="startBtn">시작</button>
-              <button id="stopBtn" class="danger">멈추기</button>
-              <button id="deleteRoomBtn" class="danger">방 삭제</button>
-            </div>
-            <div class="divider"></div>
             <div id="ownerItems" class="row" style="flex-wrap: wrap"></div>
           </div>
 
           <div class="card" style="margin-bottom: 12px">
-            <h3 style="margin: 0 0 8px">참여자</h3>
-            <div id="peaplesList" class="row" style="flex-wrap: wrap"></div>
+            <h3 style="margin: 0 0 8px">
+              참여자 <span id="peapleCount" class="chip">0</span>
+            </h3>
+            <div
+              id="peaplesList"
+              class="row peaples-list"
+              style="flex-wrap: wrap"
+            ></div>
           </div>
 
           <div class="card">
             <h3 style="margin: 0 0 6px">투표</h3>
             <div class="subtle" style="margin-bottom: 8px">
-              방장의 <b>시작</b> 이후부터 투표할 수 있습니다. 각 아이템은 최대
+              투표장의 <b>시작</b> 이후부터 투표할 수 있습니다. 각 아이템은 최대
               6표까지 허용됩니다.
             </div>
             <div id="votesGrid" class="votes-grid"></div>
@@ -351,8 +411,8 @@
 
       <div class="footer">
         <div class="row">
-          <button id="navToRoomsBtn" class="secondary">방 리스트</button>
-          <button id="leaveRoomBtn" class="ghost">방 나가기</button>
+          <button id="navToRoomsBtn" class="secondary">투표 리스트</button>
+          <button id="leaveRoomBtn" class="ghost">투표 나가기</button>
         </div>
       </div>
     </div>
@@ -403,11 +463,19 @@
         $('savedName').textContent = state.name || '-';
         $('roomKeyLabel').textContent = state.roomKey || '-';
         $('myRoleLabel').textContent = state.isOwner
-          ? '방장'
+          ? '투표장'
           : state.myPeapleId
             ? '참가자'
             : '-';
         $('ownerReadyLabel').textContent = String(state.ownerReady);
+
+        if (!state.ownerReady) {
+          $('startBtn').classList.remove('hidden');
+          $('stopBtn').classList.add('hidden');
+        } else {
+          $('startBtn').classList.add('hidden');
+          $('stopBtn').classList.remove('hidden');
+        }
       }
 
       // ===== Debounced refresh =====
@@ -539,6 +607,16 @@
         `;
         const data = await gqlRequest(mutation, { id: String(id) });
         return !!data.deleteOneRoom;
+      }
+
+      async function deleteOneVoteItem(id) {
+        const mutation = `
+          mutation($id: ID!) {
+            deleteOneVoteItem(input: { id: $id }) { _id }
+          }
+        `;
+        const data = await gqlRequest(mutation, { id: String(id) });
+        return !!data.deleteOneVoteItem;
       }
 
       async function createVoteItem({ name, roomId }) {
@@ -715,12 +793,14 @@
         const arr = Array.from(state.peaples.values()).sort((a, b) =>
           a.name.localeCompare(b.name),
         );
+        const countEl = $('peapleCount');
+        if (countEl) countEl.textContent = String(arr.length);
         for (const p of arr) {
           const wrap = document.createElement('div');
           wrap.className = 'row';
           const chip = document.createElement('span');
           chip.className = 'chip';
-          chip.textContent = p.name + (p.isOwner ? ' (방장)' : '');
+          chip.textContent = p.name + (p.isOwner ? ' (투표장)' : '');
           wrap.appendChild(chip);
           // show kick button only if I'm owner and target is not owner and not me
           if (state.isOwner && !p.isOwner && p._id !== state.myPeapleId) {
@@ -767,11 +847,54 @@
         return result;
       }
 
-      function formatTimeTenth(ms) {
-        const d = new Date(ms + 9 * 60 * 60 * 1000);
-        const pad = (n) => String(n).padStart(2, '0');
-        const tenth = Math.floor(d.getMilliseconds() / 100);
-        return `<br/><br/>${pad(d.getHours())}시${pad(d.getMinutes())}분${pad(d.getSeconds())}.${tenth}초`;
+      // 모집마감(6표) 순위 계산: 각 아이템별 6번째로 빠른 투표 시간 기준 오름차순
+      function computeFullRanks() {
+        const itemToTimes = new Map(); // itemId -> number[] (ms)
+        for (const p of state.peaples.values()) {
+          if (!p.voteId || !p.updatedAt) continue;
+          const list = itemToTimes.get(p.voteId) || [];
+          list.push(new Date(p.updatedAt).getTime());
+          itemToTimes.set(p.voteId, list);
+        }
+        const fullItems = [];
+        for (const [itemId, times] of itemToTimes.entries()) {
+          if (!Array.isArray(times) || times.length < MAX_VOTES_PER_ITEM)
+            continue;
+          times.sort((a, b) => a - b);
+          const fullTime = times[MAX_VOTES_PER_ITEM - 1];
+          fullItems.push({ itemId, fullTime });
+        }
+        fullItems.sort((a, b) => a.fullTime - b.fullTime);
+        const rankMap = {};
+        fullItems.forEach((x, i) => {
+          rankMap[x.itemId] = i + 1;
+        });
+        return rankMap; // itemId -> rank(1..)
+      }
+
+      // 같은 voteId 인원이 6명을 넘을 경우, updatedAt 기준으로 늦은 투표자(7번째 이후)에
+      // 내가 포함되어 있으면 내 voteId 를 null 로 되돌린다.
+      async function enforceVoteLimitAfterVote(voteId) {
+        if (!state.roomId || !state.myPeapleId || !voteId) return false;
+        try {
+          const peaples = await queryPeaples(state.roomId);
+          const voters = peaples
+            .filter((p) => p.voteId === voteId && p.updatedAt)
+            .sort(
+              (a, b) =>
+                new Date(a.updatedAt).getTime() -
+                new Date(b.updatedAt).getTime(),
+            );
+          if (voters.length <= MAX_VOTES_PER_ITEM) return false;
+          const overflow = voters.slice(MAX_VOTES_PER_ITEM);
+          const iAmOverflow = overflow.some((p) => p._id === state.myPeapleId);
+          if (!iAmOverflow) return false;
+          await updatePeaple(state.myPeapleId, { voteId: null });
+          return true;
+        } catch (err) {
+          console.error('enforceVoteLimitAfterVote error', err);
+          return false;
+        }
       }
 
       function renderOwnerControls() {
@@ -781,10 +904,32 @@
         list.innerHTML = '';
         const items = Array.from(state.voteItems.values());
         for (const it of items) {
+          const wrap = document.createElement('div');
+          wrap.className = 'row vote-item-row';
           const chip = document.createElement('span');
           chip.className = 'chip';
           chip.textContent = `${it.name}`;
-          list.appendChild(chip);
+          const delBtn = document.createElement('button');
+          delBtn.className = 'danger';
+          delBtn.textContent = '삭제';
+          delBtn.addEventListener('click', async () => {
+            if (!confirm(`정말 '${it.name}' 아이템을 삭제하시겠어요?`)) return;
+            try {
+              const ok = await deleteOneVoteItem(it._id);
+              if (!ok) return alert('아이템 삭제 실패');
+              wsBroadcast('refresh', {
+                reason: 'vote_item_deleted',
+                id: it._id,
+              });
+              if (!state.voteWsConnected) await refreshAll();
+            } catch (err) {
+              console.error(err);
+              alert('아이템 삭제 실패');
+            }
+          });
+          wrap.appendChild(chip);
+          wrap.appendChild(delBtn);
+          list.appendChild(wrap);
         }
       }
 
@@ -792,6 +937,7 @@
         const canVote = !!state.ownerReady;
         const counts = computeVoteCounts();
         const lastByItem = computeLastVotesByItem();
+        const fullRanks = computeFullRanks();
         const grid = $('votesGrid');
         grid.innerHTML = '';
         const items = Array.from(state.voteItems.values());
@@ -803,25 +949,46 @@
           const votedThis =
             (state.peaples.get(state.myPeapleId || '') || {}).voteId === it._id;
           const lastInfo = lastByItem[it._id];
-          const lastText = lastInfo
-            ? `${lastInfo.name} ${formatTimeTenth(lastInfo.timeMs)}`
-            : '-';
+
           card.innerHTML = `
             <h3>${it.name}</h3>
             <div>현재 표: <span class="count">${cnt}</span> / ${MAX_VOTES_PER_ITEM}</div>
-             <div class="subtle">마지막 투표: ${lastText}</div>
+
             ${atLimit ? '<div class="warning">이 아이템은 6표에 도달했습니다.</div>' : ''}
-            <div class="row"><button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '변경' : '투표'}</button></div>
+            <div class="row voters" style="flex-wrap: wrap; margin-top: 6px; margin-bottom: 6px"></div>
+            <div class="row"><button ${!canVote || atLimit ? 'disabled' : ''} data-vote="${it._id}">${votedThis ? '완료' : '투표'}</button></div>
           `;
+          // 투표자 리스트 렌더링
+          const voters = Array.from(state.peaples.values())
+            .filter((p) => p.voteId === it._id)
+            .sort((a, b) => a.name.localeCompare(b.name));
+          const votersWrap = card.querySelector('.voters');
+          if (votersWrap) {
+            voters.forEach((v) => {
+              const chip = document.createElement('span');
+              chip.className = 'chip';
+              chip.textContent = v.name;
+              votersWrap.appendChild(chip);
+            });
+          }
+          // 모집마감 오버레이 및 순위 표기
+          if (atLimit) {
+            card.classList.add('full');
+            const rank = fullRanks[it._id];
+            if (rank) card.setAttribute('data-rank', String(rank));
+          }
           grid.appendChild(card);
         }
         grid.querySelectorAll('button[data-vote]').forEach((btn) => {
           btn.addEventListener('click', async (e) => {
             const voteId = e.currentTarget.getAttribute('data-vote');
-            if (!state.myPeapleId) return alert('먼저 방에 입장하세요.');
+            if (!state.myPeapleId) return alert('먼저 투표에 입장하세요.');
             try {
               await updatePeaple(state.myPeapleId, { voteId });
-              wsBroadcast('refresh', { reason: 'vote_changed' });
+              const reverted = await enforceVoteLimitAfterVote(voteId);
+              wsBroadcast('refresh', {
+                reason: reverted ? 'vote_reverted_overflow' : 'vote_changed',
+              });
               if (!state.voteWsConnected) await refreshAll();
             } catch (err) {
               console.error(err);
@@ -884,7 +1051,7 @@
         try {
           let room = await queryRoomByKey(roomKey);
           if (!room) {
-            if (!create) return alert('존재하지 않는 방입니다.');
+            if (!create) return alert('존재하지 않는 투표입니다.');
             room = await createRoom(roomKey);
           }
           state.roomKey = room.roomKey;
@@ -921,7 +1088,7 @@
       async function onAddVoteItem() {
         const name = $('voteItemNameInput').value.trim();
         if (!name) return;
-        if (!state.roomId) return alert('먼저 방에 입장하세요.');
+        if (!state.roomId) return alert('먼저 투표에 입장하세요.');
         try {
           await createVoteItem({ name, roomId: state.roomId });
           wsBroadcast('refresh', { reason: 'vote_item_created' });
@@ -934,7 +1101,7 @@
       }
 
       async function onStart() {
-        if (!state.isOwner) return alert('방장만 시작할 수 있습니다.');
+        if (!state.isOwner) return alert('투표장만 시작할 수 있습니다.');
         if (!state.myPeapleId)
           return alert('내 Peaple ID를 확인할 수 없습니다.');
         try {
@@ -947,7 +1114,7 @@
         }
       }
       async function onStop() {
-        if (!state.isOwner) return alert('방장만 멈출 수 있습니다.');
+        if (!state.isOwner) return alert('투표장만 멈출 수 있습니다.');
         if (!state.myPeapleId)
           return alert('내 Peaple ID를 확인할 수 없습니다.');
         try {
@@ -993,13 +1160,15 @@
       $('startBtn').addEventListener('click', onStart);
       $('stopBtn').addEventListener('click', onStop);
       $('deleteRoomBtn').addEventListener('click', async () => {
-        if (!state.isOwner) return alert('방장만 삭제할 수 있습니다.');
-        if (!state.roomId) return alert('방 정보를 확인할 수 없습니다.');
-        if (!confirm('정말 이 방을 삭제하시겠어요? 모든 데이터가 사라집니다.'))
+        if (!state.isOwner) return alert('투표장만 삭제할 수 있습니다.');
+        if (!state.roomId) return alert('투표 정보를 확인할 수 없습니다.');
+        if (
+          !confirm('정말 이 투표를 삭제하시겠어요? 모든 데이터가 사라집니다.')
+        )
           return;
         try {
           const ok = await deleteOneRoom(state.roomId);
-          if (!ok) return alert('방 삭제 실패');
+          if (!ok) return alert('투표 삭제 실패');
           try {
             wsBroadcast('refresh', { reason: 'room_deleted' });
           } catch (_) {}
@@ -1016,7 +1185,7 @@
           await loadRoomsList();
         } catch (err) {
           console.error(err);
-          alert('방 삭제 실패');
+          alert('투표 삭제 실패');
         }
       });
       $('navToRoomsBtn').addEventListener('click', async () => {
